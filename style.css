@@ -30,6 +30,47 @@ body {
   padding: 28px 24px 32px;
 }
 
+.sheet-wide {
+  max-width: 780px;
+}
+
+.gate-body {
+  display: flex;
+  gap: 26px;
+  align-items: flex-start;
+}
+
+.state-image {
+  flex: 0 0 220px;
+  border: 1px solid var(--rule);
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 220px;
+}
+
+.state-image img {
+  max-width: 100%;
+  max-height: 260px;
+  display: block;
+}
+
+.gate-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.unlocked-note {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--ok);
+  border: 1px solid var(--ok);
+  background: rgba(58, 90, 64, 0.06);
+  padding: 8px 10px;
+  margin-top: 14px;
+}
+
 .letterhead {
   border-bottom: 2px solid var(--ink);
   padding-bottom: 10px;

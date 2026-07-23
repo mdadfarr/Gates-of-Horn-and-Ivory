@@ -24,6 +24,23 @@ if (hour < phase1EndHour) return githubDone;
 else return githubDone && leetcodeDone;
 ```
 
+## Gate page images
+
+`gate.html` shows an image on the left, chosen by state. Drop your own files
+into the `images/` folder using exactly these names:
+
+- `images/1.png` — nothing done yet (locked)
+- `images/2.png` — GitHub done, before the phase-1 cutoff, LeetCode not
+  required yet (unlocked — a "Continue to site" link appears)
+- `images/3.png` — both done (unlocked for the rest of the day)
+
+There's no separate image for "GitHub done, past the cutoff, LeetCode still
+missing" (locked again) — it reuses `1.png` since it's still a locked state.
+Ask if you'd rather have a dedicated 4th image for that case.
+
+The gate page no longer auto-redirects once you're unlocked — it shows the
+matching image plus a "Continue to site" link so you decide when to leave.
+
 ## Install (unpacked)
 
 1. `chrome://extensions`

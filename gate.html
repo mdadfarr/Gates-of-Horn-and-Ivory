@@ -6,26 +6,36 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="sheet">
+  <div class="sheet sheet-wide">
     <div class="letterhead">
       <h1>Daily Gate</h1>
       <span class="stamp" id="siteStamp">—</span>
     </div>
 
-    <div class="ledger" id="ledger">
-      <div class="ledger-row">
-        <span class="mark">…</span>
-        <span class="label">Loading requirement ledger…</span>
-        <span class="meta"></span>
+    <div class="gate-body">
+      <div class="state-image">
+        <img id="stateImg" src="images/1.png" alt="" />
       </div>
-    </div>
 
-    <div class="note" id="phaseNote">—</div>
-    <div class="error-box" id="errorBox" style="display:none;"></div>
+      <div class="gate-content">
+        <div class="ledger" id="ledger">
+          <div class="ledger-row">
+            <span class="mark">…</span>
+            <span class="label">Loading requirement ledger…</span>
+            <span class="meta"></span>
+          </div>
+        </div>
 
-    <div class="footer-actions">
-      <button id="recheckBtn">Check again now</button>
-      <span class="hint" id="lastCheckedHint"></span>
+        <div class="note" id="phaseNote">—</div>
+        <div class="unlocked-note" id="unlockedNote" style="display:none;"></div>
+        <div class="error-box" id="errorBox" style="display:none;"></div>
+
+        <div class="footer-actions">
+          <button id="recheckBtn">Check again now</button>
+          <a class="btn" id="continueBtn" style="display:none;" href="#">Continue to site</a>
+          <span class="hint" id="lastCheckedHint"></span>
+        </div>
+      </div>
     </div>
   </div>
 

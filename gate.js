@@ -1,6 +1,14 @@
 // gate.js — no unlock control here except "check again now", which triggers
 // the SAME real API check background.js runs on its own schedule. There is
 // no client-side branch that can flip a requirement to done.
+//
+// Three visual states (drop your own images/1.png, images/2.png, images/3.png
+// into the images/ folder):
+//   1.png — nothing done yet (locked)
+//   2.png — GitHub done, before the phase-1 cutoff, LeetCode not required yet (unlocked)
+//   3.png — both done (fully unlocked for the rest of the day)
+// A fourth situation (GitHub done, past the cutoff, LeetCode still not done —
+// locked again) reuses 1.png since it's still a locked state.
 
 import { getRawState, getConfig, isUnlocked, phaseDescription } from "./common.js";
 
@@ -13,44 +21,54 @@ function fmtTime(ms) {
   return new Date(ms).toLocaleTimeString();
 }
 
-function renderRow(label, done, metaText) {
+function renderRow(label, done) {
   const row = document.createElement("div");
   row.className = "ledger-row";
   row.innerHTML = `
     <span class="mark ${done ? "done" : "pending"}">${done ? "✅" : "⬜"}</span>
     <span class="label">${label}</span>
-    <span class="meta">${metaText || ""}</span>
   `;
   return row;
+}
+
+function pickImage(state, unlocked) {
+  if (state.githubDone && state.leetcodeDone) return "images/3.png";
+  if (unlocked) return "images/2.png"; // github done, still in phase 1 grace window
+  return "images/1.png"; // nothing done, or locked again after phase 1
 }
 
 async function render() {
   const [state, config] = await Promise.all([getRawState(), getConfig()]);
   const unlocked = isUnlocked(state, config);
 
-  if (unlocked) {
-    // Requirement was met (likely by a background recheck) — send them on.
-    location.href = `https://${blockedSite}`;
-    return;
-  }
+  document.getElementById("stateImg").src = pickImage(state, unlocked);
 
   const ledger = document.getElementById("ledger");
   ledger.innerHTML = "";
   ledger.appendChild(
-    renderRow(
-      `GitHub push — ${config.githubUsername || "(no username set)"}`,
-      state.githubDone
-    )
+    renderRow(`GitHub push — ${config.githubUsername || "(no username set)"}`, state.githubDone)
   );
   ledger.appendChild(
-    renderRow(
-      `LeetCode solve — ${config.leetcodeUsername || "(no username set)"}`,
-      state.leetcodeDone
-    )
+    renderRow(`LeetCode solve — ${config.leetcodeUsername || "(no username set)"}`, state.leetcodeDone)
   );
 
   document.getElementById("phaseNote").textContent = phaseDescription(config);
   document.getElementById("lastCheckedHint").textContent = `last checked: ${fmtTime(state.lastCheck)}`;
+
+  const unlockedNote = document.getElementById("unlockedNote");
+  const continueBtn = document.getElementById("continueBtn");
+  if (unlocked) {
+    unlockedNote.style.display = "block";
+    unlockedNote.textContent =
+      state.githubDone && state.leetcodeDone
+        ? "Both done for today — unlocked for the rest of the day."
+        : "GitHub done — unlocked until the phase-1 cutoff. Go ahead.";
+    continueBtn.style.display = "inline-block";
+    continueBtn.href = `https://${blockedSite}`;
+  } else {
+    unlockedNote.style.display = "none";
+    continueBtn.style.display = "none";
+  }
 
   const errBox = document.getElementById("errorBox");
   const streak = state.consecutiveErrors || {};
