@@ -1,0 +1,49 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Daily Gate — Options</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="sheet">
+    <div class="letterhead">
+      <h1>Daily Gate — Configuration</h1>
+      <span class="stamp">no override exists</span>
+    </div>
+
+    <label for="githubUsername">GitHub username</label>
+    <input type="text" id="githubUsername" placeholder="e.g. mdadfarr" />
+    <div class="hint">Public events only, unless a token is set below.</div>
+
+    <label for="githubToken">GitHub personal access token (optional)</label>
+    <input type="password" id="githubToken" placeholder="ghp_… (only sent to api.github.com)" />
+    <div class="hint">Stored in chrome.storage.local. Never transmitted anywhere but api.github.com. Needed only if your pushes are to private repos.</div>
+
+    <label for="leetcodeUsername">LeetCode username</label>
+    <input type="text" id="leetcodeUsername" placeholder="e.g. mdadfar" />
+
+    <label for="phase1EndHour">Unlock schedule</label>
+    <div class="row2">
+      <div>
+        <div class="hint">Before this local hour, unlocks once GitHub push is done:</div>
+        <select id="phase1EndHour"></select>
+      </div>
+    </div>
+    <div class="hint" id="scheduleExplain"></div>
+
+    <label for="gatedSites">Gated sites (one per line)</label>
+    <textarea id="gatedSites" rows="4" style="width:100%; font-family: var(--mono); font-size:13px; padding:7px 8px; border:1px solid var(--rule);"></textarea>
+    <div class="hint">Domains only, e.g. youtube.com — no https:// prefix. Adding a new domain may prompt a one-time browser permission request.</div>
+
+    <div class="footer-actions">
+      <button id="saveBtn">Save</button>
+      <span class="saved-flag" id="savedFlag" style="display:none;">saved</span>
+    </div>
+
+    <div class="note" id="statusNote">—</div>
+  </div>
+
+  <script type="module" src="options.js"></script>
+</body>
+</html>

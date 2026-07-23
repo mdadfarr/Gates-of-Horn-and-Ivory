@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "Daily Gate",
+  "version": "1.0.0",
+  "description": "Blocks sites every day until you've provably pushed a GitHub commit and solved a LeetCode problem. No manual override.",
+  "permissions": ["storage", "alarms", "declarativeNetRequest"],
+  "host_permissions": [
+    "*://*.youtube.com/*",
+    "*://*.instagram.com/*",
+    "https://api.github.com/*",
+    "https://leetcode.com/*"
+  ],
+  "optional_host_permissions": ["*://*/*"],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "options_page": "options.html",
+  "web_accessible_resources": [
+    {
+      "resources": ["gate.html"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
