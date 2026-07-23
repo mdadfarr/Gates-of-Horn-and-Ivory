@@ -1,43 +1,45 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Daily Gate — Blocked</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Daily Gate</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="sheet sheet-wide">
-    <div class="letterhead">
-      <h1>Gates of Horn and Ivory</h1>
-      <span class="stamp" id="siteStamp">—</span>
+  <main class="frame">
+    <div class="masthead">
+      <h1 class="wordmark">Daily Gate</h1>
+      <span class="masthead-meta" id="siteStamp"></span>
     </div>
 
-    <div class="gate-body">
-      <div class="state-image">
+    <div class="spread">
+      <div class="rail" id="rail"></div>
+
+      <figure class="plate">
         <img id="stateImg" src="images/1.png" alt="" />
-      </div>
+      </figure>
 
-      <div class="gate-content">
-        <div class="ledger" id="ledger">
-          <div class="ledger-row">
-            <span class="mark">…</span>
-            <span class="label">Loading requirement ledger…</span>
-            <span class="meta"></span>
-          </div>
+      <div class="column">
+        <div class="flag" id="flag"></div>
+        <p class="eyebrow">Today</p>
+        <p class="status" id="statusWord">&nbsp;</p>
+        <p class="standfirst" id="phaseNote"></p>
+
+        <ol class="reqs" id="ledger"></ol>
+
+        <div class="resolution" id="unlockedNote" hidden></div>
+        <div class="notice" id="errorBox" hidden></div>
+
+        <div class="actions">
+          <button class="btn" id="recheckBtn">Check again</button>
+          <a class="btn btn-hollow" id="continueBtn" hidden href="#"></a>
         </div>
 
-        <div class="note" id="phaseNote">—</div>
-        <div class="unlocked-note" id="unlockedNote" style="display:none;"></div>
-        <div class="error-box" id="errorBox" style="display:none;"></div>
-
-        <div class="footer-actions">
-          <button id="recheckBtn">Check again now</button>
-          <a class="btn" id="continueBtn" style="display:none;" href="#">Continue to site</a>
-          <span class="hint" id="lastCheckedHint"></span>
-        </div>
+        <p class="timestamp" id="lastCheckedHint"></p>
       </div>
     </div>
-  </div>
+  </main>
 
   <script type="module" src="gate.js"></script>
 </body>

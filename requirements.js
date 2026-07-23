@@ -1,15 +1,12 @@
-// requirements.js — GitHub + LeetCode requirement checks, isolated from background.js
-// so they can be unit-tested independently (pass in fetch impl if you want to mock it).
+// The two checks, kept away from background.js and free of chrome.* calls so
+// they can be tested on their own. Pass a fake fetch in to mock the network.
 
 import { utcIsoToLocalDateStr, unixSecondsToLocalDateStr, todayStr } from "./common.js";
 
 /**
- * Checks whether the given GitHub user pushed a commit today (local time).
- * Uses the unauthenticated public events endpoint by default; if a token is
- * provided, uses the authenticated endpoint instead so private-repo pushes
- * (and events beyond the public feed) count too.
- *
- * Fails closed: any error/unexpected shape resolves to { done: false, error }.
+ * Did this user push today, in local time? Reads the public events feed, or
+ * the authenticated one when a token is set so private repos count as well.
+ * Anything unexpected resolves to { done: false, error } and keeps the block.
  */
 export async function checkGithubPush(username, token, fetchImpl = fetch) {
   if (!username) {
@@ -59,11 +56,9 @@ export async function checkGithubPush(username, token, fetchImpl = fetch) {
 }
 
 /**
- * Checks whether the given LeetCode user has a non-zero submission count
- * today (local time), via LeetCode's public (unauthenticated) GraphQL
- * submission-calendar query.
- *
- * Fails closed: any error/unexpected shape resolves to { done: false, error }.
+ * Did this user submit anything today, in local time? Reads the submission
+ * calendar off LeetCode's public GraphQL endpoint. Same rule as above: on any
+ * error or unfamiliar shape it returns not-done and the block stays up.
  */
 export async function checkLeetcodeSolve(username, fetchImpl = fetch) {
   if (!username) {
@@ -108,7 +103,7 @@ export async function checkLeetcodeSolve(username, fetchImpl = fetch) {
     return { done: false, error: "LeetCode API returned unparseable JSON." };
   }
 
-  // Fail closed if LeetCode changes their schema — don't guess, don't unlock.
+  // If LeetCode reshapes this response, stop here rather than guess.
   const calendarRaw = payload?.data?.matchedUser?.userCalendar?.submissionCalendar;
   if (typeof calendarRaw !== "string") {
     return { done: false, error: "LeetCode response shape changed (submissionCalendar missing)." };

@@ -1,31 +1,33 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <title>Daily Gate</title>
   <link rel="stylesheet" href="style.css" />
-  <style>
-    body { width: 320px; }
-    .sheet { padding: 16px 16px 18px; }
-  </style>
 </head>
 <body>
-  <div class="sheet">
-    <div class="letterhead">
-      <h1>Gates of Horn and Ivory</h1>
-      <span class="stamp" id="statusStamp">—</span>
+  <main class="frame popup">
+    <div class="masthead">
+      <h1 class="wordmark">Daily Gate</h1>
+      <span class="masthead-meta" id="dateStamp"></span>
     </div>
 
-    <div class="ledger" id="ledger"></div>
+    <div class="flag" id="flag"></div>
+    <p class="status" id="statusWord">&nbsp;</p>
+    <p class="standfirst" id="phaseNote"></p>
 
-    <div class="note" id="phaseNote">—</div>
-    <div class="error-box" id="errorBox" style="display:none;"></div>
+    <ol class="reqs" id="ledger"></ol>
 
-    <div class="footer-actions">
-      <button id="recheckBtn">Check again now</button>
-      <a class="hint" href="options.html" target="_blank" style="margin-left:auto;">options</a>
+    <div class="notice" id="errorBox" hidden></div>
+
+    <div class="actions">
+      <button class="btn" id="recheckBtn">Check again</button>
+      <a class="textlink" href="options.html" target="_blank" style="margin-left:auto; align-self:center;">Settings</a>
     </div>
-  </div>
+
+    <p class="timestamp" id="lastCheckedHint"></p>
+  </main>
+
   <script type="module" src="popup.js"></script>
 </body>
 </html>

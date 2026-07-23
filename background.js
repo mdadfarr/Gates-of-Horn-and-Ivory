@@ -1,6 +1,6 @@
-// background.js — MV3 service worker. Owns the alarm loop, requirement checks,
-// and declarativeNetRequest rule management. No code path here can unlock the
-// gate except a successful API check — there is no manual-override branch.
+// MV3 service worker: owns the alarm loop, the requirement checks, and the
+// declarativeNetRequest rules. A successful API check is the only thing that
+// clears a requirement. There is deliberately no override branch.
 
 import { ensureFresh, setState, getConfig, isUnlocked } from "./common.js";
 import { checkGithubPush, checkLeetcodeSolve } from "./requirements.js";
@@ -9,7 +9,7 @@ const ALARM_NAME = "daily-gate-recheck";
 const MAX_ERROR_STREAK_TO_SURFACE = 3;
 
 function ruleIdForSite(index) {
-  // Stable, small, non-conflicting ids for our own dynamic rules.
+  // Small stable ids so our dynamic rules never collide with anything else.
   return 1000 + index;
 }
 
@@ -41,8 +41,8 @@ async function applyRules(locked, config) {
 }
 
 /**
- * Runs both requirement checks, updates stored state/error streaks, rebuilds
- * DNR rules to match, and returns the fresh state + unlocked flag.
+ * Runs both checks, records the result and any error streaks, rebuilds the
+ * block rules to match, and hands back the fresh state.
  */
 export async function runCheck() {
   const config = await getConfig();
@@ -113,13 +113,13 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   }
 });
 
-// Manual "check again now" from gate.html / popup.html — this triggers the
-// SAME real API check, just outside the alarm schedule. It cannot unlock
-// anything by itself; it only asks "has the real requirement been met yet?"
+// "Check again" from gate.html or popup.html. Same real check the alarm runs,
+// just off-schedule. It asks whether the requirement has been met; it can't
+// answer yes on its own.
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message?.type === "recheckNow") {
     runCheck().then(sendResponse);
-    return true; // keep the message channel open for the async response
+    return true; // keeps the message channel open for the async reply
   }
   if (message?.type === "configChanged") {
     runCheck().then(() => scheduleAlarm()).then(() => sendResponse({ ok: true }));

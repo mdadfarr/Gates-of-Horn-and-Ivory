@@ -1,29 +1,25 @@
-// common.js — shared storage helpers, day-rollover logic, timezone-safe date conversion.
-// Imported as an ES module by background.js, and loaded via <script type="module"> in
-// gate.js / options.js / popup.js.
+// Storage helpers, the day rollover, and the one function that decides whether
+// the gate is open. Imported by background.js and by the three page scripts.
 
 export const DEFAULT_CONFIG = {
   githubUsername: "",
   leetcodeUsername: "",
   githubToken: "",
   gatedSites: ["youtube.com", "instagram.com"],
-  // Unlock rule (see README section "Unlock schedule"):
-  //   local hour < phase1EndHour  -> unlocked once GitHub push is done (LeetCode not required yet)
-  //   local hour >= phase1EndHour -> unlocked only once BOTH GitHub push AND LeetCode solve are done
   phase1EndHour: 12,
   checkIntervalMinutes: 15
 };
 
 const DEFAULT_STATE = {
-  date: null, // local YYYY-MM-DD this state belongs to
+  date: null,          // local YYYY-MM-DD this state belongs to
   githubDone: false,
   leetcodeDone: false,
-  lastCheck: null, // ms epoch
-  lastError: null, // { source: "github"|"leetcode", message, at } | null
+  lastCheck: null,     // ms epoch
+  lastError: null,     // { source, message, at } or null
   consecutiveErrors: { github: 0, leetcode: 0 }
 };
 
-/** Local (browser-timezone) YYYY-MM-DD for a given Date (defaults to now). */
+/** Local YYYY-MM-DD. Everything in here is browser-timezone, never UTC. */
 export function todayStr(d = new Date()) {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
@@ -31,14 +27,19 @@ export function todayStr(d = new Date()) {
   return `${y}-${m}-${day}`;
 }
 
-/** Convert a UTC ISO timestamp string to a local YYYY-MM-DD string. */
 export function utcIsoToLocalDateStr(isoUtc) {
   return todayStr(new Date(isoUtc));
 }
 
-/** Convert a unix timestamp (seconds, UTC) to a local YYYY-MM-DD string. */
 export function unixSecondsToLocalDateStr(unixSeconds) {
   return todayStr(new Date(unixSeconds * 1000));
+}
+
+/** 0 -> "12:00 AM", 13 -> "1:00 PM". Used by options and by the gate copy. */
+export function hourLabel(h) {
+  if (h === 0) return "12:00 AM";
+  if (h === 12) return "12:00 PM";
+  return h < 12 ? `${h}:00 AM` : `${h - 12}:00 PM`;
 }
 
 export async function getConfig() {
@@ -47,8 +48,7 @@ export async function getConfig() {
 }
 
 export async function setConfig(partial) {
-  const current = await getConfig();
-  const next = { ...current, ...partial };
+  const next = { ...(await getConfig()), ...partial };
   await chrome.storage.local.set({ dailyGateConfig: next });
   return next;
 }
@@ -59,48 +59,38 @@ export async function getRawState() {
 }
 
 export async function setState(partial) {
-  const current = await getRawState();
-  const next = { ...current, ...partial };
+  const next = { ...(await getRawState()), ...partial };
   await chrome.storage.local.set({ dailyGateState: next });
   return next;
 }
 
 /**
- * Ensures state matches today's local date. If the stored state is from a
- * previous day (or missing), it is reset to a fresh, unmet state for today.
- * Always call this before reading/writing today's requirement flags.
+ * Wipes yesterday's flags once the local date has moved on. Call this before
+ * reading or writing today's requirement flags.
  */
 export async function ensureFresh() {
   const state = await getRawState();
   const today = todayStr();
-  if (state.date !== today) {
-    const fresh = {
-      ...DEFAULT_STATE,
-      date: today
-    };
-    await chrome.storage.local.set({ dailyGateState: fresh });
-    return fresh;
-  }
-  return state;
+  if (state.date === today) return state;
+
+  const fresh = { ...DEFAULT_STATE, date: today };
+  await chrome.storage.local.set({ dailyGateState: fresh });
+  return fresh;
 }
 
 /**
- * Unlock rule. See DEFAULT_CONFIG.phase1EndHour comment above.
+ * Before the cutoff hour a GitHub push is enough. After it, both requirements
+ * are needed. That's the whole rule.
  */
 export function isUnlocked(state, config, now = new Date()) {
-  const beforePhase1End = now.getHours() < config.phase1EndHour;
-  if (beforePhase1End) {
-    return !!state.githubDone;
-  }
+  if (now.getHours() < config.phase1EndHour) return !!state.githubDone;
   return !!(state.githubDone && state.leetcodeDone);
 }
 
-/** Human-readable description of the current phase, for UI. */
 export function phaseDescription(config, now = new Date()) {
+  const label = hourLabel(config.phase1EndHour);
   if (now.getHours() < config.phase1EndHour) {
-    const h = config.phase1EndHour;
-    const label = h === 12 ? "noon" : `${h}:00`;
-    return `Before ${label}: unlocks once GitHub push is done.`;
+    return `A GitHub push is enough until ${label}. After that a LeetCode solve is required too.`;
   }
-  return `After phase 1: unlocks only once BOTH GitHub push AND LeetCode solve are done.`;
+  return `Past ${label}, so both a GitHub push and a LeetCode solve are required today.`;
 }

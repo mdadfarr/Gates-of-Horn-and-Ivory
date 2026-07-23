@@ -1,52 +1,40 @@
 import { getRawState, getConfig, isUnlocked, phaseDescription } from "./common.js";
+import { drawLedger, paintFault, clockOf, isoDateOf } from "./ui.js";
 
-function fmtTime(ms) {
-  if (!ms) return "never";
-  return new Date(ms).toLocaleTimeString();
-}
+const el = {
+  dateStamp: document.getElementById("dateStamp"),
+  flag: document.getElementById("flag"),
+  status: document.getElementById("statusWord"),
+  phase: document.getElementById("phaseNote"),
+  ledger: document.getElementById("ledger"),
+  fault: document.getElementById("errorBox"),
+  recheck: document.getElementById("recheckBtn"),
+  checked: document.getElementById("lastCheckedHint")
+};
 
-function renderRow(label, done) {
-  const row = document.createElement("div");
-  row.className = "ledger-row";
-  row.innerHTML = `
-    <span class="mark ${done ? "done" : "pending"}">${done ? "✅" : "⬜"}</span>
-    <span class="label">${label}</span>
-  `;
-  return row;
-}
+el.dateStamp.textContent = isoDateOf();
 
 async function render() {
   const [state, config] = await Promise.all([getRawState(), getConfig()]);
   const unlocked = isUnlocked(state, config);
 
-  document.getElementById("statusStamp").textContent = unlocked ? "UNLOCKED" : "LOCKED";
+  el.flag.dataset.open = String(unlocked);
+  el.status.textContent = unlocked ? "Open" : "Closed";
+  el.phase.textContent = phaseDescription(config);
+  el.checked.textContent = `Last checked ${clockOf(state.lastCheck)}`;
 
-  const ledger = document.getElementById("ledger");
-  ledger.innerHTML = "";
-  ledger.appendChild(renderRow(`GitHub push — ${config.githubUsername || "(unset)"}`, state.githubDone));
-  ledger.appendChild(renderRow(`LeetCode solve — ${config.leetcodeUsername || "(unset)"}`, state.leetcodeDone));
-
-  document.getElementById("phaseNote").textContent =
-    `${phaseDescription(config)} Last checked: ${fmtTime(state.lastCheck)}.`;
-
-  const errBox = document.getElementById("errorBox");
-  const streak = state.consecutiveErrors || {};
-  if ((streak.github || 0) >= 3 || (streak.leetcode || 0) >= 3) {
-    errBox.style.display = "block";
-    errBox.textContent = `Check failing repeatedly (${state.lastError?.source}): ${state.lastError?.message}`;
-  } else {
-    errBox.style.display = "none";
-  }
+  drawLedger(el.ledger, state, config);
+  paintFault(el.fault, state);
 }
 
-document.getElementById("recheckBtn").addEventListener("click", async (e) => {
-  e.target.disabled = true;
-  e.target.textContent = "Checking…";
+el.recheck.addEventListener("click", async () => {
+  el.recheck.disabled = true;
+  el.recheck.textContent = "Checking";
   try {
     await chrome.runtime.sendMessage({ type: "recheckNow" });
   } finally {
-    e.target.disabled = false;
-    e.target.textContent = "Check again now";
+    el.recheck.disabled = false;
+    el.recheck.textContent = "Check again";
     render();
   }
 });

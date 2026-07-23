@@ -1,87 +1,85 @@
-import { getConfig, setConfig } from "./common.js";
+import { getConfig, setConfig, hourLabel } from "./common.js";
 
-const els = {
+const el = {
   githubUsername: document.getElementById("githubUsername"),
   githubToken: document.getElementById("githubToken"),
   leetcodeUsername: document.getElementById("leetcodeUsername"),
   phase1EndHour: document.getElementById("phase1EndHour"),
   gatedSites: document.getElementById("gatedSites"),
-  saveBtn: document.getElementById("saveBtn"),
-  savedFlag: document.getElementById("savedFlag"),
-  statusNote: document.getElementById("statusNote"),
-  scheduleExplain: document.getElementById("scheduleExplain")
+  save: document.getElementById("saveBtn"),
+  saved: document.getElementById("savedFlag"),
+  status: document.getElementById("statusNote"),
+  explain: document.getElementById("scheduleExplain")
 };
 
-function populateHourSelect() {
+function fillHours() {
   for (let h = 0; h < 24; h++) {
     const opt = document.createElement("option");
     opt.value = String(h);
-    opt.textContent = h === 0 ? "12:00 AM" : h < 12 ? `${h}:00 AM` : h === 12 ? "12:00 PM (noon)" : `${h - 12}:00 PM`;
-    els.phase1EndHour.appendChild(opt);
+    opt.textContent = hourLabel(h);
+    el.phase1EndHour.appendChild(opt);
   }
 }
 
-function updateExplain() {
-  const h = Number(els.phase1EndHour.value);
-  const label = els.phase1EndHour.selectedOptions[0]?.textContent || `${h}:00`;
-  els.scheduleExplain.textContent =
-    `Before ${label}: unlocked once GitHub is done (LeetCode not required yet). ` +
-    `From ${label} onward: locked again until BOTH GitHub and LeetCode are done.`;
+function explain() {
+  const label = hourLabel(Number(el.phase1EndHour.value));
+  el.explain.textContent =
+    `Before ${label} a GitHub push is enough on its own. ` +
+    `From ${label} onward sites block again until both a push and a LeetCode solve are recorded.`;
 }
-
-async function load() {
-  populateHourSelect();
-  const config = await getConfig();
-  els.githubUsername.value = config.githubUsername;
-  els.githubToken.value = config.githubToken;
-  els.leetcodeUsername.value = config.leetcodeUsername;
-  els.phase1EndHour.value = String(config.phase1EndHour);
-  els.gatedSites.value = config.gatedSites.join("\n");
-  updateExplain();
-  els.statusNote.textContent = "Checks run on install, browser start, and every ~15 minutes. Rate limits: GitHub 60/hr unauthenticated, so don't lower the interval much further.";
-}
-
-els.phase1EndHour.addEventListener("change", updateExplain);
 
 function parseSites(raw) {
   return raw
     .split("\n")
-    .map((s) => s.trim().toLowerCase())
+    .map((line) => line.trim().toLowerCase())
     .filter(Boolean)
-    .map((s) => s.replace(/^https?:\/\//, "").replace(/\/.*$/, ""));
+    .map((line) => line.replace(/^https?:\/\//, "").replace(/\/.*$/, ""));
 }
 
-async function requestHostPermissionIfNeeded(sites) {
+async function askForHosts(sites) {
   const origins = sites.map((s) => `*://*.${s}/*`);
-  const already = await chrome.permissions.contains({ origins });
-  if (already) return true;
+  if (await chrome.permissions.contains({ origins })) return true;
   return chrome.permissions.request({ origins });
 }
 
-els.saveBtn.addEventListener("click", async () => {
-  const sites = parseSites(els.gatedSites.value);
+el.phase1EndHour.addEventListener("change", explain);
+
+el.save.addEventListener("click", async () => {
+  const sites = parseSites(el.gatedSites.value);
   if (sites.length === 0) {
-    els.statusNote.textContent = "Add at least one gated site.";
+    el.status.textContent = "Add at least one site before saving.";
     return;
   }
 
-  const granted = await requestHostPermissionIfNeeded(sites);
-  if (!granted) {
-    els.statusNote.textContent = "Permission for one or more new sites was denied — they will not be blocked until granted.";
-  }
+  const granted = await askForHosts(sites);
 
   await setConfig({
-    githubUsername: els.githubUsername.value.trim(),
-    githubToken: els.githubToken.value.trim(),
-    leetcodeUsername: els.leetcodeUsername.value.trim(),
-    phase1EndHour: Number(els.phase1EndHour.value),
+    githubUsername: el.githubUsername.value.trim(),
+    githubToken: el.githubToken.value.trim(),
+    leetcodeUsername: el.leetcodeUsername.value.trim(),
+    phase1EndHour: Number(el.phase1EndHour.value),
     gatedSites: sites
   });
 
   await chrome.runtime.sendMessage({ type: "configChanged" });
 
-  els.savedFlag.style.display = "inline";
-  setTimeout(() => (els.savedFlag.style.display = "none"), 1500);
+  if (granted) {
+    el.saved.hidden = false;
+    setTimeout(() => (el.saved.hidden = true), 1600);
+  } else {
+    el.status.textContent = "Saved, but one or more sites were denied permission and won't be blocked yet.";
+  }
 });
 
-load();
+(async function load() {
+  fillHours();
+  const config = await getConfig();
+  el.githubUsername.value = config.githubUsername;
+  el.githubToken.value = config.githubToken;
+  el.leetcodeUsername.value = config.leetcodeUsername;
+  el.phase1EndHour.value = String(config.phase1EndHour);
+  el.gatedSites.value = config.gatedSites.join("\n");
+  explain();
+  el.status.textContent =
+    "Checks run on install, on browser start, and every 15 minutes. GitHub allows 60 unauthenticated requests an hour, so a shorter interval will start failing.";
+})();

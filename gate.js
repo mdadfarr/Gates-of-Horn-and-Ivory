@@ -1,93 +1,78 @@
-// gate.js — no unlock control here except "check again now", which triggers
-// the SAME real API check background.js runs on its own schedule. There is
-// no client-side branch that can flip a requirement to done.
+// The blocked page. The only control here is "check again", which runs the same
+// API check background.js runs on its schedule. Nothing on this page can set a
+// requirement to done.
 //
-// Three visual states (drop your own images/1.png, images/2.png, images/3.png
-// into the images/ folder):
-//   1.png — nothing done yet (locked)
-//   2.png — GitHub done, before the phase-1 cutoff, LeetCode not required yet (unlocked)
-//   3.png — both done (fully unlocked for the rest of the day)
-// A fourth situation (GitHub done, past the cutoff, LeetCode still not done —
-// locked again) reuses 1.png since it's still a locked state.
+// Images live in images/ and are picked by state:
+//   1.png  nothing done, or done with GitHub but past the cutoff
+//   2.png  GitHub done, still inside the phase-1 window
+//   3.png  both done
 
-import { getRawState, getConfig, isUnlocked, phaseDescription } from "./common.js";
+import { getRawState, getConfig, isUnlocked, phaseDescription, hourLabel } from "./common.js";
+import { drawLedger, paintFault, clockOf, isoDateOf } from "./ui.js";
 
-const params = new URLSearchParams(location.search);
-const blockedSite = params.get("d") || "this site";
-document.getElementById("siteStamp").textContent = `blocked: ${blockedSite}`;
+const site = new URLSearchParams(location.search).get("d") || "this site";
 
-function fmtTime(ms) {
-  if (!ms) return "never";
-  return new Date(ms).toLocaleTimeString();
-}
+const el = {
+  siteStamp: document.getElementById("siteStamp"),
+  rail: document.getElementById("rail"),
+  image: document.getElementById("stateImg"),
+  flag: document.getElementById("flag"),
+  status: document.getElementById("statusWord"),
+  phase: document.getElementById("phaseNote"),
+  ledger: document.getElementById("ledger"),
+  resolution: document.getElementById("unlockedNote"),
+  fault: document.getElementById("errorBox"),
+  recheck: document.getElementById("recheckBtn"),
+  continue: document.getElementById("continueBtn"),
+  checked: document.getElementById("lastCheckedHint")
+};
 
-function renderRow(label, done) {
-  const row = document.createElement("div");
-  row.className = "ledger-row";
-  row.innerHTML = `
-    <span class="mark ${done ? "done" : "pending"}">${done ? "✅" : "⬜"}</span>
-    <span class="label">${label}</span>
-  `;
-  return row;
-}
+el.siteStamp.textContent = site;
+el.rail.textContent = `${isoDateOf()} / local`;
 
-function pickImage(state, unlocked) {
+function plateFor(state, unlocked) {
   if (state.githubDone && state.leetcodeDone) return "images/3.png";
-  if (unlocked) return "images/2.png"; // github done, still in phase 1 grace window
-  return "images/1.png"; // nothing done, or locked again after phase 1
+  if (unlocked) return "images/2.png";
+  return "images/1.png";
 }
 
 async function render() {
   const [state, config] = await Promise.all([getRawState(), getConfig()]);
   const unlocked = isUnlocked(state, config);
+  const bothDone = state.githubDone && state.leetcodeDone;
 
-  document.getElementById("stateImg").src = pickImage(state, unlocked);
+  el.image.src = plateFor(state, unlocked);
+  el.flag.dataset.open = String(unlocked);
+  el.status.textContent = unlocked ? "Open" : "Closed";
+  el.phase.textContent = phaseDescription(config);
 
-  const ledger = document.getElementById("ledger");
-  ledger.innerHTML = "";
-  ledger.appendChild(
-    renderRow(`GitHub push — ${config.githubUsername || "(no username set)"}`, state.githubDone)
-  );
-  ledger.appendChild(
-    renderRow(`LeetCode solve — ${config.leetcodeUsername || "(no username set)"}`, state.leetcodeDone)
-  );
+  drawLedger(el.ledger, state, config);
+  paintFault(el.fault, state);
 
-  document.getElementById("phaseNote").textContent = phaseDescription(config);
-  document.getElementById("lastCheckedHint").textContent = `last checked: ${fmtTime(state.lastCheck)}`;
-
-  const unlockedNote = document.getElementById("unlockedNote");
-  const continueBtn = document.getElementById("continueBtn");
   if (unlocked) {
-    unlockedNote.style.display = "block";
-    unlockedNote.textContent =
-      state.githubDone && state.leetcodeDone
-        ? "Both done for today — unlocked for the rest of the day."
-        : "GitHub done — unlocked until the phase-1 cutoff. Go ahead.";
-    continueBtn.style.display = "inline-block";
-    continueBtn.href = `https://${blockedSite}`;
+    el.resolution.textContent = bothDone
+      ? "Both requirements met. Sites stay open for the rest of the day."
+      : `GitHub push recorded. Sites are open until ${hourLabel(config.phase1EndHour)}, then LeetCode is required too.`;
+    el.resolution.hidden = false;
+    el.continue.textContent = `Continue to ${site}`;
+    el.continue.href = `https://${site}`;
+    el.continue.hidden = false;
   } else {
-    unlockedNote.style.display = "none";
-    continueBtn.style.display = "none";
+    el.resolution.hidden = true;
+    el.continue.hidden = true;
   }
 
-  const errBox = document.getElementById("errorBox");
-  const streak = state.consecutiveErrors || {};
-  if ((streak.github || 0) >= 3 || (streak.leetcode || 0) >= 3) {
-    errBox.style.display = "block";
-    errBox.textContent = `Check is failing repeatedly (${state.lastError?.source}): ${state.lastError?.message}. Investigate in options — don't assume you just haven't done it yet.`;
-  } else {
-    errBox.style.display = "none";
-  }
+  el.checked.textContent = `Last checked ${clockOf(state.lastCheck)}`;
 }
 
-document.getElementById("recheckBtn").addEventListener("click", async (e) => {
-  e.target.disabled = true;
-  e.target.textContent = "Checking…";
+el.recheck.addEventListener("click", async () => {
+  el.recheck.disabled = true;
+  el.recheck.textContent = "Checking";
   try {
     await chrome.runtime.sendMessage({ type: "recheckNow" });
   } finally {
-    e.target.disabled = false;
-    e.target.textContent = "Check again now";
+    el.recheck.disabled = false;
+    el.recheck.textContent = "Check again";
     render();
   }
 });

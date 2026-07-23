@@ -1,76 +1,62 @@
 # Daily Gate
 
-Blocks configured sites every day until you've provably pushed a GitHub
-commit and solved a LeetCode problem — no manual override, no honor system.
+Blocks the sites you list until you've pushed to GitHub and solved a LeetCode
+problem, verified against both APIs. No honor system, no override button.
 
-## Unlock schedule (as configured)
+## Unlock rule
 
-Locked at day start. `phase1EndHour` defaults to 12 (noon), configurable in
-options.
+Locked at midnight. `phase1EndHour` defaults to 12 and is set in options.
 
-- **Before phase1EndHour:** unlocked once GitHub push is done. LeetCode not
-  required yet.
-- **From phase1EndHour onward (e.g. through 5pm and the rest of the day):**
-  locked again — now requires **both** GitHub push and LeetCode solve to
-  unlock. If neither is done by then, both are required, same as if only one
-  is missing: the gate only opens once both flags are true.
-- Once both are true, stays unlocked for the rest of the local day.
-- State resets at local midnight.
+- Before the cutoff hour: a GitHub push is enough on its own.
+- From the cutoff onward: both a push and a solve are required.
+- Once both are recorded, sites stay open until local midnight.
 
-This collapses to one rule in code (`common.js` → `isUnlocked`):
+In code (`common.js` -> `isUnlocked`):
 
 ```
 if (hour < phase1EndHour) return githubDone;
-else return githubDone && leetcodeDone;
+return githubDone && leetcodeDone;
 ```
 
-## Gate page images
+## Gate images
 
-`gate.html` shows an image on the left, chosen by state. Drop your own files
-into the `images/` folder using exactly these names:
+`gate.html` shows a plate on the left, picked by state. Drop your own files in
+`images/` under exactly these names:
 
-- `images/1.png` — nothing done yet (locked)
-- `images/2.png` — GitHub done, before the phase-1 cutoff, LeetCode not
-  required yet (unlocked — a "Continue to site" link appears)
-- `images/3.png` — both done (unlocked for the rest of the day)
+- `1.png` nothing done, or GitHub done but past the cutoff (both are locked)
+- `2.png` GitHub done, still inside the cutoff window
+- `3.png` both done
 
-There's no separate image for "GitHub done, past the cutoff, LeetCode still
-missing" (locked again) — it reuses `1.png` since it's still a locked state.
-Ask if you'd rather have a dedicated 4th image for that case.
-
-The gate page no longer auto-redirects once you're unlocked — it shows the
-matching image plus a "Continue to site" link so you decide when to leave.
+The page doesn't redirect on its own once you're open. It shows the state and
+a link, and you decide when to leave.
 
 ## Install (unpacked)
 
 1. `chrome://extensions`
-2. Enable Developer mode (top right)
-3. "Load unpacked" → select this folder
-4. Open the extension's options page and set your GitHub username, LeetCode
-   username, and (optionally) a GitHub token for private-repo pushes.
+2. Turn on Developer mode
+3. Load unpacked, select this folder
+4. Open Settings and fill in your GitHub username, LeetCode username, and a
+   GitHub token if your pushes go to private repos
 
 ## Files
 
-- `manifest.json` — MV3 manifest, permissions, host permissions
-- `common.js` — storage helpers, day-rollover, timezone-safe date conversion, unlock rule
-- `requirements.js` — GitHub + LeetCode check functions (isolated, no chrome.* calls — pass a fetch impl to unit test)
-- `background.js` — alarms, orchestrates checks, builds/tears down declarativeNetRequest rules
-- `gate.html` / `gate.js` — blocked-page checklist + "check again now" (real recheck, not a fake unlock)
-- `options.html` / `options.js` — configuration
-- `popup.html` / `popup.js` — quick status view
-- `style.css` — shared ledger-style look
+- `manifest.json` MV3 manifest, permissions, host permissions
+- `common.js` storage, day rollover, timezone-safe dates, the unlock rule
+- `requirements.js` the two API checks, no chrome.* calls so they're testable
+- `background.js` alarms, orchestration, declarativeNetRequest rules
+- `ui.js` shared rendering for the gate page and the popup
+- `gate.html` / `gate.js` the blocked page
+- `options.html` / `options.js` settings
+- `popup.html` / `popup.js` toolbar status
+- `style.css` one grotesk, hairline rules, red only for faults
 
-## Notes / limitations
+## Limits
 
-- GitHub: unauthenticated `events/public` only sees **public** repos and only
-  the last ~90 events / ~10 days — fine since only today matters. Add a
-  token in options for private-repo pushes to count.
-- GitHub rate limit: 60 req/hr unauthenticated. The 15-minute check interval
-  is well inside that; don't lower it much further.
-- LeetCode: uses an unofficial public GraphQL query (`submissionCalendar`).
-  LeetCode can change this schema without notice. If the check starts
-  failing repeatedly, Daily Gate **fails closed** (keeps blocking) and
-  surfaces a visible error in the popup and gate page rather than silently
-  unlocking.
-- Adding a new gated site in options may trigger a one-time Chrome
-  permission prompt (`optional_host_permissions`).
+- Unauthenticated GitHub events only cover public repos and roughly the last
+  90 events. Fine, since only today matters. Add a token for private pushes.
+- GitHub allows 60 unauthenticated requests an hour. The 15 minute interval
+  sits well inside that; don't shorten it much.
+- The LeetCode query (`submissionCalendar`) is unofficial and can change
+  without notice. If it does, checks fail closed: sites stay blocked and the
+  gate page and popup say the check is broken rather than quietly unlocking.
+- Adding a site in options can trigger a one time Chrome permission prompt.
