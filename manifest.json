@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
   "name": "Daily Gate",
-  "version": "1.0.0",
-  "description": "Blocks sites every day until you've provably pushed a GitHub commit and solved a LeetCode problem. No manual override.",
-  "permissions": ["storage", "alarms", "declarativeNetRequest"],
+  "version": "1.1.0",
+  "description": "Blocks sites every day until you've provably pushed a GitHub commit and solved a LeetCode problem. No manual override, aside from two 15-minute meal breaks.",
+  "permissions": ["storage", "alarms", "declarativeNetRequest", "scripting"],
   "host_permissions": [
     "*://*.youtube.com/*",
     "*://*.instagram.com/*",

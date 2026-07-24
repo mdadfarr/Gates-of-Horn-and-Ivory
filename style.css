@@ -191,6 +191,38 @@ body {
 
 .req[data-met="true"] .req-state { color: var(--ink); }
 
+/* ---- breaks ---- */
+
+.breaks {
+  border-top: 1px solid var(--faint);
+  margin-top: 4px;
+}
+
+.breaks-label {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--mid);
+  margin: 14px 0 6px;
+}
+
+.break-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 8px 0;
+}
+
+.break-name {
+  font-size: 13px;
+}
+
+.break-btn {
+  padding: 8px 14px;
+  font-size: 10px;
+}
+
 /* ---- notices ---- */
 
 .resolution {
@@ -260,6 +292,14 @@ body {
   background: var(--ink);
   color: var(--stock);
   border-color: var(--ink);
+}
+
+/* The one-tap "you got it boss" continue button. Same family, just bigger,
+   since on that screen it's the only control on the page. */
+.btn-boss {
+  font-size: 13px;
+  padding: 18px 30px;
+  letter-spacing: 0.12em;
 }
 
 .timestamp {

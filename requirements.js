@@ -22,7 +22,7 @@ export async function checkGithubPush(username, token, fetchImpl = fetch) {
 
   let res;
   try {
-    res = await fetchImpl(url, { headers });
+    res = await fetchImpl(url, { headers, cache: "no-store" });
   } catch (e) {
     return { done: false, error: `GitHub request failed: ${e.message}` };
   }
@@ -82,6 +82,7 @@ export async function checkLeetcodeSolve(username, fetchImpl = fetch) {
     res = await fetchImpl("https://leetcode.com/graphql", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      cache: "no-store",
       body: JSON.stringify({
         query,
         variables: { username, year },
